@@ -1,0 +1,43 @@
+services:
+  accounts-db:
+    image: postgres:16
+    container_name: account-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U account_user -d account_db" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - account-db:/var/lib/postgresql/data
+    networks:
+      - banking-net
+    ports:
+      - "5433:5432"
+  monolith-app:
+    build:
+      context: ..
+      dockerfile: services/monolith-app/Dockerfile
+    container_name: monolith-app
+    environment:
+      SPRING_DATASOURCE_URL: ${DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DATASOURCE_PASSWORD}
+    restart: on-failure
+    ports:
+      - "8080:8080"
+    depends_on:
+      accounts-db:
+        condition: service_healthy
+    networks:
+      - banking-net
+
+
+volumes:
+  account-db:
+
+networks:
+  banking-net:
