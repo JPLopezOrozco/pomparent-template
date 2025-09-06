@@ -15,5 +15,3 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-jwt:
-  secret: k8YsLp6dyOudDsKKbAk+WJ4QQTlJufbKM42TLd/Vnks=
