@@ -2,10 +2,7 @@ package com.juan.monolithapp.service;
 
 import com.juan.monolithapp.dto.TransactionRequestDto;
 import com.juan.monolithapp.exception.InsufficientBalanceException;
-import com.juan.monolithapp.model.Account;
-import com.juan.monolithapp.model.CurrencyCode;
-import com.juan.monolithapp.model.Transaction;
-import com.juan.monolithapp.model.TransactionType;
+import com.juan.monolithapp.model.*;
 import com.juan.monolithapp.repository.AccountRepository;
 import com.juan.monolithapp.repository.TransactionRepository;
 import com.juan.monolithapp.service.impl.TransactionService;
@@ -60,6 +57,7 @@ public class TransactionServiceTest {
                 .amount(BigDecimal.valueOf(1000))
                 .description("Alquiler")
                 .build();
+
         Transaction transactionSaved = Transaction.builder()
                 .id(1000L)
                 .account(account)
@@ -70,7 +68,7 @@ public class TransactionServiceTest {
                 .build();
 
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
-        when(accountRepository.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
+
         when(transactionRepository.save(any(Transaction.class))).thenReturn(transactionSaved);
 
         Transaction tx = transactionService.save(transactionRequestDto);
@@ -82,7 +80,6 @@ public class TransactionServiceTest {
         Assertions.assertThat(tx.getAmount()).isEqualTo(BigDecimal.valueOf(1000));
         Assertions.assertThat(tx.getDescription()).isEqualTo("Alquiler");
         Mockito.verify(accountRepository).findById(1L);
-        Mockito.verify(accountRepository).save(any(Account.class));
         Mockito.verify(transactionRepository).save(any(Transaction.class));
         Mockito.verifyNoMoreInteractions(accountRepository, transactionRepository);
     }
@@ -104,6 +101,7 @@ public class TransactionServiceTest {
                 .amount(BigDecimal.valueOf(1000))
                 .description("Alquiler")
                 .build();
+
         Transaction transactionSaved = Transaction.builder()
                 .id(1000L)
                 .account(account)
@@ -114,7 +112,6 @@ public class TransactionServiceTest {
                 .build();
 
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
-        when(accountRepository.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
         when(transactionRepository.save(any(Transaction.class))).thenReturn(transactionSaved);
 
         Transaction tx = transactionService.save(transactionRequestDto);
@@ -126,7 +123,6 @@ public class TransactionServiceTest {
         Assertions.assertThat(tx.getAmount()).isEqualTo(BigDecimal.valueOf(1000));
         Assertions.assertThat(tx.getDescription()).isEqualTo("Alquiler");
         Mockito.verify(accountRepository).findById(1L);
-        Mockito.verify(accountRepository).save(any(Account.class));
         Mockito.verify(transactionRepository).save(any(Transaction.class));
         Mockito.verifyNoMoreInteractions(accountRepository, transactionRepository);
     }
@@ -141,24 +137,22 @@ public class TransactionServiceTest {
                 .active(true)
                 .build();
 
-        TransactionRequestDto transactionRequestDto = TransactionRequestDto.builder()
-                .accountId(account.getId())
+        Transaction transaction = Transaction.builder()
+                .id(1000L)
+                .account(account)
+                .currency(CurrencyCode.USD)
                 .type(TransactionType.DEBIT)
                 .amount(BigDecimal.valueOf(1000))
-                .description("Alquiler")
+                .status(TransactionStatus.PENDING)
                 .build();
-
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(transactionRepository.findById(1000L)).thenReturn(Optional.of(transaction));
 
-
-        Assertions.assertThatThrownBy(() -> transactionService.save(transactionRequestDto))
+        Assertions.assertThatThrownBy(() -> transactionService.approve(1000L))
                 .isInstanceOf(InsufficientBalanceException.class);
         Mockito.verify(accountRepository).findById(1L);
-        Mockito.verify(transactionRepository, Mockito.never()).save(Mockito.any(Transaction.class));
-        Mockito.verify(accountRepository, Mockito.never()).save(Mockito.any(Account.class));
-        Mockito.verifyNoMoreInteractions(accountRepository, transactionRepository);
+        Mockito.verifyNoMoreInteractions(accountRepository);
         Assertions.assertThat(account.getBalance()).isEqualByComparingTo("500.00");
-
     }
 
     @Test

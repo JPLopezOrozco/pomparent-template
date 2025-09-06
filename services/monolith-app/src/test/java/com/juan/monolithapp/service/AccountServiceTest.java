@@ -35,7 +35,7 @@ public class AccountServiceTest {
     private AccountService accountService;
 
     @Test
-    public void AccountServiceCreate() {
+    public void CreateTest() {
         AccountRequestDto accountRequestDto = AccountRequestDto.builder()
                 .holderName("Juan Lopez")
                 .currencyCode(CurrencyCode.EUR)
@@ -67,7 +67,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void AccountServiceGetAccount() {
+    public void GetAccountTest() {
        Account account = Account.builder()
                .id(4L)
                .holderName("Juan Lopez")
@@ -89,7 +89,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void AccountServiceGetAccountNotFound() {
+    public void GetAccountNotFoundTest() {
         when(accountRepository.findById(4L)).thenReturn(Optional.empty());
 
         Assertions.assertThatThrownBy(()->accountService.getAccount(4L))

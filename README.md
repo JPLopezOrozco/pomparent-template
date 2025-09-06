@@ -63,15 +63,22 @@ docker compose logs -f monolith-app
 
 ## 📚 Endpoints principales
 
-### Cuentas (`/api/accounts`)
-- **POST** `/api/accounts` → Crear nueva cuenta.
-- **GET** `/api/accounts/{id}` → Obtener cuenta por ID.
-- **GET** `/api/accounts` → Listar todas las cuentas.
+### Cuentas (`/accounts`)
+- **POST** `/accounts` → Crear nueva cuenta.
+- **GET** `/accounts/{id}` → Obtener cuenta por ID.
+- **GET** `/accounts` → Listar todas las cuentas.
 
-### Transacciones (`/api/transactions`)
-- **POST** `/api/transactions` → Crear nueva transacción (crédito o débito).
-- **GET** `/api/transactions/{id}` → Obtener transacción por ID.
-- **GET** `/api/transactions/account/{id}` → Listar transacciones de una cuenta (con paginación).
+### Transacciones (`/transactions`)
+- **POST** `/transactions` → Crear nueva transacción (crédito o débito).
+- **GET** `/transactions/{id}` → Obtener transacción por ID.
+- **GET** `/transactions/account/{id}` → Listar transacciones de una cuenta (con paginación).
+
+### Usuarios (`/auth`)
+- **POST** `/auth/register` → Crear usuarios.
+- **POST** `/auth/login` → Genera un Token de acceso y un refresh token. Ademas persiste los refresh en la base de datos
+- **POST** `/auth/refresh` → Genera un token de acceso y un refresh atravez de un token de refresh revocando los refresh anteriores.
+- **GET** `/auth/{id}` → Obtiene usuario por id.
+- **POST** `/auth/logout` → Revoca todos los refresh token terminando con la session del user.
 
 ### Documentación API
 - **Swagger UI**: `/swagger-ui.html`
@@ -84,6 +91,7 @@ docker compose logs -f monolith-app
 - **Java 21**
 - **Spring Boot 3.5.5**
 - **Spring Data JPA + Hibernate**
+- **Spring security + JWT**
 - **PostgreSQL 16**
 - **Flyway** (migraciones)
 - **Docker & Docker Compose**
@@ -92,7 +100,7 @@ docker compose logs -f monolith-app
 
 ---
 
-## 👨‍💻 Desarrollo local (sin Docker)
+## 👨‍💻 Desarrollo local (sin docker-compose)
 
 Si querés correr la app localmente sin Docker:
 

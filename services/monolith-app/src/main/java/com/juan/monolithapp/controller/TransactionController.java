@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -47,6 +48,19 @@ public class TransactionController {
         var transactions = transactionService.getByAccountId(id, pageable)
                 .map(TransactionResponseDto::from);
         return ResponseEntity.ok(PageResponse.from(transactions));
+    }
+
+    @PutMapping("/approve/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<TransactionResponseDto> approveTransaction(@PathVariable Long id) {
+        var updated = transactionService.approve(id);
+        return ResponseEntity.ok(TransactionResponseDto.from(updated));
+    }
+    @PutMapping("/reject/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<TransactionResponseDto> rejectTransaction(@PathVariable Long id) {
+        var updated = transactionService.reject(id);
+        return ResponseEntity.ok(TransactionResponseDto.from(updated));
     }
 
 }

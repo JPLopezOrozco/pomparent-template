@@ -22,4 +22,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> NoTransaction(NoTransactionException ex) {
         return ResponseEntity.status(HttpStatusCode.valueOf(404)).body(ex.getMessage());
     }
+
+    @ExceptionHandler(UserNotfoundException.class)
+    public ResponseEntity<String> UserNotfound(UserNotfoundException ex) {
+        return ResponseEntity.status(HttpStatusCode.valueOf(404)).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(RefreshTokenException.class)
+    public ResponseEntity<String> RefreshToken(RefreshTokenException ex) {
+        return ResponseEntity.status(HttpStatusCode.valueOf(409)).body(ex.getMessage());
+    }
 }

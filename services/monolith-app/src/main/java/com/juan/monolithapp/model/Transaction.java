@@ -36,7 +36,7 @@ public class Transaction {
     @Builder.Default
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private TransactionStatus status = TransactionStatus.APPROVED;
+    private TransactionStatus status = TransactionStatus.PENDING;
     @Column(updatable = false)
     @CreationTimestamp
     private Instant createdAt;
