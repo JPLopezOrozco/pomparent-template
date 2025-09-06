@@ -1,12 +1,10 @@
 package com.juan.monolithapp.service;
 
-import com.juan.monolithapp.dto.RefreshRequestDto;
 import com.juan.monolithapp.dto.UserLoginRequestDto;
 import com.juan.monolithapp.dto.UserLoginResponseDto;
 import com.juan.monolithapp.dto.UserRegisterRequestDto;
 import com.juan.monolithapp.jwt.JwtService;
 import com.juan.monolithapp.model.RefreshToken;
-import com.juan.monolithapp.model.Role;
 import com.juan.monolithapp.model.User;
 import com.juan.monolithapp.repository.UserRepository;
 import com.juan.monolithapp.service.impl.RefreshTokenService;

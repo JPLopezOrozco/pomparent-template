@@ -13,9 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.Instant;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -83,6 +81,6 @@ public class RefreshTokenService implements IRefreshToken {
 
     @Scheduled(cron = "0 0 0 * * ?")
     public void cleanExpiredTokens() {
-        int deleted =  refreshTokenRepository.deleteExpiredTokens(Instant.now());
+        refreshTokenRepository.deleteExpiredTokens(Instant.now());
     }
 }

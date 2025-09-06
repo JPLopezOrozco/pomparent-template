@@ -1,8 +1,6 @@
 package com.juan.monolithapp.controller;
 
 import com.juan.monolithapp.dto.*;
-import com.juan.monolithapp.jwt.JwtService;
-import com.juan.monolithapp.model.RefreshToken;
 import com.juan.monolithapp.model.User;
 import com.juan.monolithapp.model.UserPrincipal;
 import com.juan.monolithapp.service.IUserService;

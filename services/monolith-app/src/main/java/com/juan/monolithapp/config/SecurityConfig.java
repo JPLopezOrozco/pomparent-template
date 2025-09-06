@@ -2,7 +2,6 @@ package com.juan.monolithapp.config;
 
 
 import com.juan.monolithapp.jwt.JwtFilter;
-import com.juan.monolithapp.jwt.JwtService;
 import com.juan.monolithapp.service.impl.MyUserDetailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

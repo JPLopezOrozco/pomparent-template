@@ -1,6 +1,6 @@
 package com.juan.monolithapp.dto;
 
-import io.swagger.v3.oas.annotations.info.Contact;
+
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 

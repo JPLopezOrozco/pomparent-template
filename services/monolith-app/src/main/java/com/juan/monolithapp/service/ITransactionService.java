@@ -2,7 +2,6 @@ package com.juan.monolithapp.service;
 
 import com.juan.monolithapp.dto.TransactionRequestDto;
 import com.juan.monolithapp.model.Transaction;
-import com.juan.monolithapp.model.UserPrincipal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
