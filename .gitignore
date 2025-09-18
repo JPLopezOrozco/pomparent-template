@@ -27,7 +27,7 @@ Thumbs.db
 
 # Env
 deploy/.env
-
+deploy/secrets/
 
 # configs
 application-local.yml

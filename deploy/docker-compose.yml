@@ -3,9 +3,9 @@ services:
     image: postgres:16
     container_name: account-db
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${ACCOUNT_DB}
+      POSTGRES_USER: ${ACCOUNT_USER}
+      POSTGRES_PASSWORD: ${ACCOUNT_PASSWORD}
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U account_user -d account_db" ]
       interval: 5s
@@ -17,21 +17,119 @@ services:
       - banking-net
     ports:
       - "5433:5432"
-  monolith-app:
+
+  transactions-db:
+    image: postgres:16
+    container_name: transaction-db
+    environment:
+      POSTGRES_DB: ${TRANSACTION_DB}
+      POSTGRES_USER: ${TRANSACTION_USER}
+      POSTGRES_PASSWORD: ${TRANSACTION_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${TRANSACTION_USER} -d $${TRANSACTION_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - transaction-db:/var/lib/postgresql/data
+    networks:
+      - banking-net
+    ports:
+      - "5434:5432"
+  eureka-server:
     build:
       context: ..
-      dockerfile: services/monolith-app/Dockerfile
-    container_name: monolith-app
-    environment:
-      SPRING_DATASOURCE_URL: ${DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${DATASOURCE_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
+      dockerfile: platform/eureka-server/Dockerfile
+    container_name: eureka-server
     restart: on-failure
+    healthcheck:
+      test: [ "CMD", "curl", "--fail","http://localhost:8761/actuator/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "8761:8761"
+    networks:
+      - banking-net
+  config-server:
+    build:
+      context: ..
+      dockerfile: platform/config-server/Dockerfile
+    container_name: config-server
+    restart: on-failure
+    healthcheck:
+      test: [ "CMD", "curl", "--fail","http://localhost:8888/actuator/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./secrets/config_server_key:/run/secrets/config_server_key:ro
+    environment:
+      CONFIG_SERVER_PRIVATE_KEY_FILE: /run/secrets/config_server_key
+    networks:
+      - banking-net
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: platform/api-gateway/Dockerfile
+    container_name: api-gateway
+    restart: on-failure
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
     ports:
       - "8080:8080"
+    networks:
+      - banking-net
+  account-service:
+    build:
+      context: ..
+      dockerfile: services/account-service/Dockerfile
+    container_name: account-service
+    environment:
+      SPRING_DATASOURCE_URL: ${ACCOUNT_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${ACCOUNT_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${ACCOUNT_DATASOURCE_PASSWORD}
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "--fail","http://localhost:8081/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "8081:8080"
     depends_on:
       accounts-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - banking-net
+  transaction-service:
+    build:
+      context: ..
+      dockerfile: services/transaction-service/Dockerfile
+    container_name: transaction-service
+    environment:
+      SPRING_DATASOURCE_URL: ${TRANSACTION_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${TRANSACTION_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${TRANSACTION_DATASOURCE_PASSWORD}
+    restart: on-failure
+    ports:
+      - "8082:8080"
+    depends_on:
+      account-service:
+        condition: service_healthy
+      transactions-db:
         condition: service_healthy
     networks:
       - banking-net
@@ -39,6 +137,7 @@ services:
 
 volumes:
   account-db:
+  transaction-db:
 
 networks:
   banking-net:
