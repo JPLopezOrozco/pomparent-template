@@ -281,12 +281,3 @@ curl http://localhost:8080/transactions/1
     ssh -i /run/secrets/config_server_key -o IdentitiesOnly=yes -T git@github.com
     ```
   - Alternativa simple: **HTTPS + PAT**.
-
----
-
-## 📜 Licencia
-MIT (o la que definas).
-
----
-
-> ¿Necesitás un `README` separado para cada servicio con instrucciones específicas (puertos, perfiles, migraciones)? Decime y lo genero.
