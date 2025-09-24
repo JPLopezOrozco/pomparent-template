@@ -32,14 +32,14 @@ public class AccountService implements IAccountService {
 
     @Override
     @Transactional
-    public Account createAccount(AccountRequestDto account) {
+    public Account createAccount(AccountRequestDto account, Long userId) {
         Long next = jdbcTemplate.queryForObject("select nextval('account_number_sq')", Long.class);
         String number = String.format("ACC-%08d", next);
 
         BigDecimal balance = (account.balance() != null) ? account.balance() : BigDecimal.ZERO;
 
         Account newAccount = Account.builder()
-                .holderName(account.holderName())
+                .userId(userId)
                 .number(number)
                 .currency(account.currencyCode())
                 .balance(balance)
@@ -50,7 +50,7 @@ public class AccountService implements IAccountService {
 
     @Override
     @Transactional
-    public void transaction(TransactionRequestDto transaction) {
+    public void applyTransaction(TransactionRequestDto transaction) {
         Long first = (transaction.sourceId() < transaction.targetId())
                 ? transaction.sourceId() : transaction.targetId();
         Long second = (transaction.sourceId() < transaction.targetId())
@@ -68,7 +68,7 @@ public class AccountService implements IAccountService {
                 "DEBIT"
         );
         if (debit == 1){
-            int ok = accountRepository.debit(transaction.sourceId(), transaction.amount(), transaction.currencyCode());
+            int ok = accountRepository.debit(transaction.sourceId(), amt, transaction.currencyCode());
             if (ok != 1)throw new AccountException("Debit failed");
         }
 
@@ -81,7 +81,7 @@ public class AccountService implements IAccountService {
         );
 
         if (credit == 1){
-          accountRepository.credit(transaction.targetId(), transaction.amount(), transaction.currencyCode());
+          accountRepository.credit(transaction.targetId(), amt, transaction.currencyCode());
         }
     }
 }

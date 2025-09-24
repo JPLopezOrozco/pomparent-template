@@ -8,7 +8,7 @@ import java.time.Instant;
 
 public record AccountResponseDto (
         String number,
-        String holderName,
+        Long userId,
         boolean active,
         CurrencyCode currencyCode,
         BigDecimal balance,
@@ -19,7 +19,7 @@ public record AccountResponseDto (
     public static AccountResponseDto  from(Account account) {
         return new AccountResponseDto(
                 account.getNumber(),
-                account.getHolderName(),
+                account.getUserId(),
                 account.isActive(),
                 account.getCurrency(),
                 account.getBalance(),

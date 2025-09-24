@@ -5,12 +5,20 @@ import com.juan.accountservice.dto.AccountResponseDto;
 import com.juan.accountservice.dto.TransactionRequestDto;
 import com.juan.accountservice.model.Account;
 import com.juan.accountservice.service.impl.AccountService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+@Tag(name = "Accounts", description = "Operaciones de cuentas")
+@Validated
 @RestController
 @RequestMapping(value = "/accounts", produces = "application/json")
 @RequiredArgsConstructor
@@ -19,18 +27,21 @@ public class AccountController {
     private final AccountService accountService;
 
 
-    @GetMapping("{id}")
-    public ResponseEntity<AccountResponseDto> getAccount(@PathVariable Long id) {
+    @PreAuthorize("hasRole('ADMIN') or @ownership.canReadAccount(#id, #jwt)")
+    @GetMapping(value = "{id}")
+    public ResponseEntity<AccountResponseDto> getAccount(@PathVariable @Positive Long id, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok().body(AccountResponseDto.from(accountService.getAccount(id)));
     }
 
+    @PostMapping(consumes = "application/json")
+    public ResponseEntity<AccountResponseDto> createAccount(@Valid @RequestBody AccountRequestDto account,
+                                                            @AuthenticationPrincipal Jwt jwt) {
 
-    @PostMapping
-    public ResponseEntity<AccountResponseDto> createAccount(@RequestBody AccountRequestDto account) {
-        Account newAccount = accountService.createAccount(account);
+        Long userId = ((Number) jwt.getClaim("id")).longValue();
+        Account newAccount = accountService.createAccount(account, userId);
 
         var location = ServletUriComponentsBuilder
-                .fromCurrentContextPath()
+                .fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(newAccount.getId())
                 .toUri();
@@ -38,10 +49,10 @@ public class AccountController {
         return ResponseEntity.created(location).body(AccountResponseDto.from(newAccount));
     }
 
-    @PutMapping("/transaction")
-    public ResponseEntity<String> transaction(@Valid @RequestBody TransactionRequestDto transaction) {
-        accountService.transaction(transaction);
-        return ResponseEntity.ok().body("Transaction successful");
+    @PutMapping(value = "/transaction", consumes = "application/json")
+    public ResponseEntity<String> applyTransaction(@Valid @RequestBody TransactionRequestDto transaction) {
+        accountService.applyTransaction(transaction);
+        return ResponseEntity.noContent().build();
     }
 
 

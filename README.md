@@ -1,21 +1,11 @@
 # Banking Platform - Microservices 🏦
 
 Plataforma bancaria basada en **microservicios** con **Spring Boot 3**, **Spring Cloud** (**Config Server, Eureka, Gateway**) y **Docker Compose**.  
-Incluye **idempotencia** en transacciones y **ledger contable** para aplicar débitos/créditos en forma segura.
+Incluye **idempotencia**, **autenticación JWT** y **hardening de dependencias**.
 
 ---
+# 🏗️ Arquitectura
 
-## 🔎 Qué hay de nuevo vs. la versión monolítica
-- Separación en servicios: `account-service`, `transaction-service`, `api-gateway`, `config-server`, `eureka-server`.
-- Configuración **centralizada** en Git con **Spring Cloud Config Server** (vía **SSH** o **HTTPS+PAT**).
-- **API Gateway (WebFlux)** para ruteo y descubrimiento vía **Eureka**.
-- **Idempotency-Key** en `transaction-service` y aplicación **exacta una vez** (`ON CONFLICT`) en `account-service` mediante `account_ledger`.
-
----
-
-## 🏗️ Arquitectura
-
-```
                         ┌─────────────────────────────┐
                         │        api-gateway          │
                         │  (Spring Cloud Gateway)     │
@@ -44,63 +34,82 @@ Incluye **idempotencia** en transacciones y **ledger contable** para aplicar dé
            │    eureka-server      │
            │ Puerto: 8761          │
            └───────────────────────┘
-```
+
+
+           ┌───────────────────────┐          (emite JWT HS256)
+           │     auth-service      │ ◄────────────────────────────────┐
+           │ Puerto: 9090          │                                  │
+           └──────────┬────────────┘                                  │
+                      │                                               │
+                      ▼                                               │
+                ┌───────────────┐                                     │
+                │    auth-db     │  PostgreSQL:5435                   │
+                └───────────────┘                                     │
+                                                                      │ 
+    Cliente ── login/register ────────────────────────────────────────┘
+    │
+    ├─► recibe JWT y llama api-gateway (Authorization: Bearer …)
+    │
+    └─► api-gateway valida JWT y propaga el header a los servicios
 
 ---
 
-## 📂 Estructura del repo
+## 🔒 Cambios recientes en seguridad
 
-> **Importante:** En este repo se incluye una carpeta **`banking-platform-config/`** con archivos `*.yml` de ejemplo (para demo local).  
-> En **producción**, debés crear **otro repositorio Git** con estos mismos archivos y dar acceso al `config-server` (Deploy Key **SSH** o **HTTPS + PAT**).
-
-```bash
-.
-├── banking-platform-config          # ✔️ Configs centralizadas (demo local)
-│   ├── account-service.yml
-│   ├── api-gateway.yml
-│   └── transaction-service.yml
-├── deploy
-│   ├── docker-compose.yml
-│   └── secrets
-│       ├── config_server_key       # 🔒 Clave privada SSH (NO subir a Git)
-│       └── config_server_key.pub   # 🔓 Clave pública (se puede subir)
-└── services
-    ├── account-service
-    ├── transaction-service
-    ├── api-gateway
-    ├── config-server
-    └── eureka-server
-```
+- **Autenticación centralizada** con `auth-service` → Emite JWT firmados con HS256.  
+- **Gateway** ahora valida JWT (`issuer`, `secret`) y propaga el token a los microservicios.  
+- **Feign** usa **OkHttp** con un `RequestInterceptor` que reenvía el JWT desde el `SecurityContext`.  
+- **Ownership** de cuentas por `user_id` (claim `id` en JWT).  
+- **Flyway** como único gestor de migraciones
+- **Secrets** gestionados vía variables de entorno/Docker secrets (JWT, claves SSH).  
 
 ---
 
+## 📂 Servicios
+
+- `auth-service` → Registro/login, emite JWT con claims: `sub=email`, `id=userId`, `roles`.  
+- `account-service` → Cuentas vinculadas a `user_id`.  
+- `transaction-service` → Idempotencia con `idempotency_key`.  
+- `api-gateway` → Valida JWT, enruta y propaga token.  
+- `config-server` → Config centralizada (Git).  
+- `eureka-server` → Descubrimiento de servicios.  
+
+---
+
+## 🛡️ Recomendaciones de seguridad
+
+1. **Validación estricta de issuer**.  
+2. **Políticas de rol** basadas en `roles` del JWT (`ROLE_USER`, `ROLE_ADMIN`).  
+3. **Secrets** fuera del repo (`.env`).  
+
+---
 ## 🔐 Secrets y Config Server (SSH) — **Requerido**
 
 1. **Crear repositorio de configuración en GitHub** (productivo):
-   - Crear el repo **`banking-platform-config`** (privado o público, recomendado **privado**).
-   - Subir los **tres archivos** (exactos a los de la carpeta local):
-     - `account-service.yml`
-     - `api-gateway.yml`
-     - `transaction-service.yml`
+  - Crear el repo **`banking-platform-config`** (privado o público, recomendado **privado**).
+  - Subir los **tres archivos** (exactos a los de la carpeta local):
+    - `account-service.yml`
+    - `api-gateway.yml`
+    - `transaction-service.yml`
 
 2. **Generar una Deploy Key (SSH)** para el `config-server`:
    ```bash
    ssh-keygen -t rsa -b 4096 -m PEM -N "" -f deploy/secrets/config_server_key
    chmod 600 deploy/secrets/config_server_key
    ```
-   - **Subir la pública** `deploy/secrets/config_server_key.pub` a GitHub:
-     - Repo **`banking-platform-config`** → *Settings* → *Deploy Keys* → **Add deploy key** → *Read-only*.
-   - **No** reutilizar la misma deploy key en varios repos.
+  - **Subir la pública** `deploy/secrets/config_server_key.pub` a GitHub:
+    - Repo **`banking-platform-config`** → *Settings* → *Deploy Keys* → **Add deploy key** → *Read-only*.
+  - **No** reutilizar la misma deploy key en varios repos.
 
 3. **Montaje del secreto en Docker Compose**:
-   - Ya está configurado para montar `deploy/secrets/config_server_key` en `/run/secrets/config_server_key` dentro del contenedor del `config-server`.
-   - El `config-server` usa **Spring ConfigTree** para leer el contenido del archivo y pasarlo a `spring.cloud.config.server.git.privateKey`.
+  - Ya está configurado para montar `deploy/secrets/config_server_key` en `/run/secrets/config_server_key` dentro del contenedor del `config-server`.
+  - El `config-server` usa **Spring ConfigTree** para leer el contenido del archivo y pasarlo a `spring.cloud.config.server.git.privateKey`.
 
 > 💡 Alternativa sin SSH: **HTTPS + Personal Access Token** (PAT). Montá el token como secreto y configura `spring.cloud.config.server.git.username/password`. Recomendado si no querés lidiar con host keys SSH.
 
 ---
 
-## 🧪 Cómo desplegar en **otra computadora** (paso a paso)
+## Despliegue rápido
 
 1. **Clonar el repo principal**
    ```bash
@@ -108,19 +117,19 @@ Incluye **idempotencia** en transacciones y **ledger contable** para aplicar dé
    cd banking-platform/deploy
    ```
 
-2. **(Opción A - DEMO local)** Usar la carpeta incluida `banking-platform-config/`  
-   - No requiere GitHub; el `config-server` puede apuntar a esa carpeta local si así lo configurás (solo para DEMO).
+2. **(Opción A - DEMO local)** Usar la carpeta incluida `banking-platform-config/`
+  - No requiere GitHub; el `config-server` puede apuntar a esa carpeta local si así lo configurás (solo para DEMO).
 
 3. **(Opción B - Producción)** Crear el **repo GitHub** `banking-platform-config` y subir:
-   - `account-service.yml`, `api-gateway.yml`, `transaction-service.yml`.
-   - Crear **Deploy Key** como se explica arriba (o PAT).
+  - `account-service.yml`, `api-gateway.yml`, `transaction-service.yml`.
+  - Crear **Deploy Key** como se explica arriba (o PAT).
 
 4. **Copiar secrets** al equipo destino**:**
-   - `deploy/secrets/config_server_key` (clave privada SSH que tenga acceso al repo de configs).
-   - Permisos:
-     ```bash
-     chmod 600 deploy/secrets/config_server_key
-     ```
+  - `deploy/secrets/config_server_key` (clave privada SSH que tenga acceso al repo de configs).
+  - Permisos:
+    ```bash
+    chmod 600 deploy/secrets/config_server_key
+    ```
 
 5. **Levantar todo con Docker Compose**
    ```bash
@@ -128,9 +137,16 @@ Incluye **idempotencia** en transacciones y **ledger contable** para aplicar dé
    ```
 
 6. **Verificar**
-   - Eureka: `http://localhost:8761`
-   - Config Server: `http://localhost:8888/account-service/default`
-   - Gateway: `http://localhost:8080`
+  - Eureka: `http://localhost:8761`
+  - Config Server: `http://localhost:8888/account-service/default`
+  - Gateway: `http://localhost:8080`
+
+---
+
+**Endpoints útiles**
+- Eureka → `http://localhost:8761`  
+- Config Server → `http://localhost:8888/account-service/default`  
+- Gateway → `http://localhost:8080`  
 
 ---
 
@@ -203,7 +219,6 @@ PATCH /transactions/{id}/reject
 ```
 
 ---
-
 ## ⚙️ Variables y `.env.example` (sugerido)
 
 Creá `deploy/.env` a partir de este ejemplo:
@@ -229,45 +244,7 @@ TRANSACTION_DATASOURCE_PASSWORD=${TRANSACTION_PASSWORD}
 EUREKA_URI=http://eureka-server:8761/eureka
 ```
 
-> No subas `deploy/.env` al repo. Añadido en `.gitignore`.
 
----
-
-## 🧱 Migraciones (Flyway)
-
-- Cada servicio aplica sus migraciones contra su propia DB (cuentas vs transacciones).
-- `account-service` incluye la tabla `account_ledger` con *constraints* para **evitar doble aplicación**:
-  - `UNIQUE (transaction_id, account_id, type)`
-- `transaction-service` define `idempotency_key UNIQUE` para crear transacciones idempotentes.
-
----
-
-## 🛡️ Observabilidad y resiliencia (resumen)
-
-- **Retries + Circuit Breaker** en llamadas de `transaction-service` → `account-service`.
-- **Idempotencia** en ambos lados para tolerar reintentos.
-- **Locks y orden de bloqueo** en `account-service.transaction(...)` para evitar deadlocks.
-
----
-
-## 🐳 Comandos útiles
-
-```bash
-# Ver estado de containers
-docker compose ps
-
-# Logs de un servicio
-docker compose logs -f config-server
-
-# Probar que el repo de config responde
-curl http://localhost:8888/account-service/default
-
-# Probar API vía gateway
-curl http://localhost:8080/accounts/1
-curl http://localhost:8080/transactions/1
-```
-
----
 
 ## ❗ Problemas comunes
 
@@ -280,4 +257,6 @@ curl http://localhost:8080/transactions/1
     ```sh
     ssh -i /run/secrets/config_server_key -o IdentitiesOnly=yes -T git@github.com
     ```
-  - Alternativa simple: **HTTPS + PAT**.
+- **401 en gateway** → Revisar `JWT_SECRET` y `JWT_ISSUER`.  
+- **Migraciones fallidas** → Revisar scripts Flyway y estado de la DB.
+

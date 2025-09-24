@@ -17,15 +17,15 @@ import java.util.Objects;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name="accounts", indexes =@Index(name = "idx_account_number", columnList = "number"))
+@Table(name="accounts", indexes = @Index(name = "idx_account_number", columnList = "number"))
 public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false, unique = true, length = 64)
     private String number;
-    @Column(nullable = false, length = 128)
-    private String holderName;
+    @Column(nullable = false, length = 64, name = "user_id")
+    private Long userId;
     @Builder.Default
     @Column(nullable = false)
     private boolean active = true;

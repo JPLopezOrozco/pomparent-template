@@ -6,11 +6,13 @@ import com.juan.transactionservice.dto.TransactionResponseDto;
 import com.juan.transactionservice.model.Transaction;
 import com.juan.transactionservice.service.ITransactionService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -18,26 +20,27 @@ import java.net.URI;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(value = "/transactions", produces = "application/json")
+@Validated
 public class TransactionController {
 
     private final ITransactionService transactionService;
 
 
-    @PostMapping
-    public ResponseEntity<TransactionResponseDto> create(@Valid @RequestBody TransactionRequestDto transactionRequestDto) {
+    @PostMapping(consumes = "application/json")
+    public ResponseEntity<TransactionResponseDto> createTransaction(@Valid @RequestBody TransactionRequestDto transactionRequestDto) {
         Transaction transaction = transactionService.save(transactionRequestDto);
         var location = URI.create("/transactions/" + transaction.getId());
         return ResponseEntity.created(location).body(TransactionResponseDto.from(transaction));
     }
 
     @GetMapping("{id}")
-    public ResponseEntity<TransactionResponseDto> getById(@PathVariable Long id) {
+    public ResponseEntity<TransactionResponseDto> getTransactionById(@PathVariable @Positive Long id) {
         Transaction transaction = transactionService.getById(id);
         return ResponseEntity.ok(TransactionResponseDto.from(transaction));
     }
 
     @GetMapping("/source/{id}")
-    public ResponseEntity<PageResponse<TransactionResponseDto>> getBySourceId(@PathVariable Long id,
+    public ResponseEntity<PageResponse<TransactionResponseDto>> getTransactionsBySourceId(@PathVariable @Positive Long id,
                                                                       @PageableDefault(
                                                                          size = 20,
                                                                          sort = "createdAt",
@@ -47,7 +50,7 @@ public class TransactionController {
     }
 
     @GetMapping("/target/{id}")
-    public ResponseEntity<PageResponse<TransactionResponseDto>> getByTargetId(@PathVariable Long id,
+    public ResponseEntity<PageResponse<TransactionResponseDto>> getTransactionsByTargetId(@PathVariable @Positive Long id,
                                                                               @PageableDefault(
                                                                                       size = 20,
                                                                                       sort = "createdAt",
@@ -57,7 +60,7 @@ public class TransactionController {
     }
 
     @GetMapping
-    public ResponseEntity<PageResponse<TransactionResponseDto>> getBySourceIdAndTargetId(@RequestParam Long sourceId, @RequestParam Long targetId,
+    public ResponseEntity<PageResponse<TransactionResponseDto>> getTransactionsBySourceIdAndTargetId(@RequestParam @Positive Long sourceId, @RequestParam @Positive Long targetId,
                                                                                          @PageableDefault(
                                                                                                  size = 20,
                                                                                                  sort = "createdAt",
@@ -68,7 +71,7 @@ public class TransactionController {
     }
 
     @GetMapping("/dialog")
-    public ResponseEntity<PageResponse<TransactionResponseDto>> getByDialogId(@RequestParam Long a, @RequestParam Long b,
+    public ResponseEntity<PageResponse<TransactionResponseDto>> getTransactionsByDialogId(@RequestParam @Positive Long a, @RequestParam @Positive Long b,
                                                                               @PageableDefault(
                                                                                       size = 20,
                                                                                       sort = "createdAt",
@@ -82,13 +85,13 @@ public class TransactionController {
 
 
     @PatchMapping("/{id}/approve")
-    public ResponseEntity<TransactionResponseDto> approve(@PathVariable Long id) {
+    public ResponseEntity<TransactionResponseDto> approveTransaction(@PathVariable @Positive Long id) {
         Transaction transaction = transactionService.approve(id);
         return ResponseEntity.ok(TransactionResponseDto.from(transaction));
     }
 
     @PatchMapping("/{id}/reject")
-    public ResponseEntity<TransactionResponseDto> reject(@PathVariable Long id) {
+    public ResponseEntity<TransactionResponseDto> rejectTransaction(@PathVariable @Positive Long id) {
         Transaction transaction = transactionService.reject(id);
         return ResponseEntity.ok(TransactionResponseDto.from(transaction));
     }

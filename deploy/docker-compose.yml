@@ -17,7 +17,6 @@ services:
       - banking-net
     ports:
       - "5433:5432"
-
   transactions-db:
     image: postgres:16
     container_name: transaction-db
@@ -36,6 +35,24 @@ services:
       - banking-net
     ports:
       - "5434:5432"
+  auth-db:
+    image: postgres:16
+    container_name: auth-db
+    environment:
+      POSTGRES_DB: ${AUTH_DB}
+      POSTGRES_USER: ${AUTH_USER}
+      POSTGRES_PASSWORD: ${AUTH_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${AUTH_USER} - $${AUTH_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - auth-db:/var/lib/postgresql/data
+    networks:
+      - banking-net
+    ports:
+      - "5435:5432"
   eureka-server:
     build:
       context: ..
@@ -104,7 +121,7 @@ services:
       timeout: 3s
       retries: 10
     ports:
-      - "8081:8080"
+      - "8081:8081"
     depends_on:
       accounts-db:
         condition: service_healthy
@@ -125,7 +142,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${TRANSACTION_DATASOURCE_PASSWORD}
     restart: on-failure
     ports:
-      - "8082:8080"
+      - "8082:8082"
     depends_on:
       account-service:
         condition: service_healthy
@@ -133,11 +150,30 @@ services:
         condition: service_healthy
     networks:
       - banking-net
-
+  auth-service:
+    build:
+      context: ..
+      dockerfile: services/auth-service/Dockerfile
+    container_name: auth-service
+    environment:
+      SPRING_DATASOURCE_URL: ${AUTH_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${AUTH_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${AUTH_DATASOURCE_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER}
+    restart: on-failure
+    ports:
+      - "9090:9090"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    networks:
+      - banking-net
 
 volumes:
   account-db:
   transaction-db:
+  auth-db:
 
 networks:
   banking-net:

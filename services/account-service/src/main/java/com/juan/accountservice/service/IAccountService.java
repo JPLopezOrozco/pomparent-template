@@ -7,6 +7,6 @@ import com.juan.accountservice.model.Account;
 
 public interface IAccountService {
     Account getAccount(Long id);
-    Account createAccount(AccountRequestDto account);
-    void transaction(TransactionRequestDto transaction);
+    Account createAccount(AccountRequestDto account, Long userId);
+    void applyTransaction(TransactionRequestDto transaction);
 }

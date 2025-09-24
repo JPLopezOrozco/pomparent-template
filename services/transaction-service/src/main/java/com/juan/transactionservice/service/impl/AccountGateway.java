@@ -29,7 +29,7 @@ public class AccountGateway {
 
     @CircuitBreaker(name = "processTransaction" ,fallbackMethod = "approveTransactionFallBackMethod")
     public void processTransaction(AccountTransaction accountTransaction) {
-        accountClient.transaction(accountTransaction);
+        accountClient.applyTransaction(accountTransaction);
     }
 
     public void approveTransactionFallBackMethod(AccountTransaction accountTransaction, Throwable t) {
