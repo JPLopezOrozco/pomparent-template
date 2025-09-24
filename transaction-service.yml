@@ -1,0 +1,63 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://transaction-db:5434/transaction_db
+#    url: jdbc:postgresql://localhost:5434/transaction_db
+    username: transaction_user
+    password: 123456789
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+eureka:
+  client:
+    serviceUrl:
+            defaultZone: http://eureka-server:8761/eureka/
+#      defaultZone: http://localhost:8761/eureka/
+
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        ignoreExceptions:
+          - com.juan.transactionservice.exception.CurrencyException
+          - com.juan.transactionservice.exception.AccountException
+          - com.juan.transactionservice.exception.NoBalanceException
+          - com.juan.transactionservice.exception.TransactionException
+          - com.juan.transactionservice.exception.TransactionNotFoundException
+        recordExceptions:
+          - feign.FeignException$ServiceUnavailable
+          - feign.FeignException
+          - java.net.SocketTimeoutException
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+    instances:
+      save:
+        base-config: default
+      approve:
+        base-config: default
+      processTransaction:
+        base-config: default
+
+feign:
+  circuitbreaker:
+    enabled: true
