@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>__GROUP_ID__</groupId>
+    <artifactId>__ARTIFACT_ID__</artifactId>
+    <version>__VERSION__</version>
+    <packaging>pom</packaging>
+    <name>__ARTIFACT_ID__ Parent</name>
+    <description>Parent POM estándar (sin Spring Cloud)</description>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.min.version>3.9.6</maven.min.version>
+
+        <!-- BOMs / versions -->
+        <spring.boot.version>3.3.3</spring.boot.version>
+
+        <!-- Plugins -->
+        <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
+        <maven.surefire.plugin.version>3.2.5</maven.surefire.plugin.version>
+        <maven.failsafe.plugin.version>3.2.5</maven.failsafe.plugin.version>
+        <maven.enforcer.plugin.version>3.4.1</maven.enforcer.plugin.version>
+        <owasp.depcheck.plugin.version>10.0.4</owasp.depcheck.plugin.version>
+        <versions.plugin.version>2.17.1</versions.plugin.version>
+        <duplicate.finder.plugin.version>1.5.1</duplicate.finder.plugin.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- BOM Spring Boot: fija versiones de starters y libs comunes -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- Compilación -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven.compiler.plugin.version}</version>
+                    <configuration>
+                        <release>${java.version}</release>
+                        <parameters>true</parameters>
+                    </configuration>
+                </plugin>
+
+                <!-- Tests -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven.surefire.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven.failsafe.plugin.version}</version>
+                </plugin>
+
+                <!-- Enforcer -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>${maven.enforcer.plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>enforce</id>
+                            <goals><goal>enforce</goal></goals>
+                            <configuration>
+                                <rules>
+                                    <requireMavenVersion>
+                                        <version>[${maven.min.version},)</version>
+                                    </requireMavenVersion>
+                                    <requireJavaVersion>
+                                        <version>[${java.version},)</version>
+                                    </requireJavaVersion>
+                                    <banDuplicatePomDependencyVersions/>
+                                    <bannedDependencies>
+                                        <excludes>
+                                            <!-- Bannear XStream (vulnerable en varias chains) -->
+                                            <exclude>com.thoughtworks.xstream:xstream</exclude>
+                                        </excludes>
+                                        <searchTransitive>true</searchTransitive>
+                                        <message>XStream está prohibido por vulnerabilidades conocidas.</message>
+                                    </bannedDependencies>
+                                </rules>
+                                <fail>true</fail>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <!-- OWASP Dependency-Check -->
+                <plugin>
+                    <groupId>org.owasp</groupId>
+                    <artifactId>dependency-check-maven</artifactId>
+                    <version>${owasp.depcheck.plugin.version}</version>
+                    <configuration>
+                        <failBuildOnCVSS>7.0</failBuildOnCVSS>
+                        <formats>HTML,JSON</formats>
+                        <skipProvidedScope>true</skipProvidedScope>
+                        <skipTestScope>false</skipTestScope>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <phase>verify</phase>
+                            <goals><goal>check</goal></goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <!-- Versions plugin -->
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>versions-maven-plugin</artifactId>
+                    <version>${versions.plugin.version}</version>
+                </plugin>
+
+                <!-- Duplicate classes -->
+                <plugin>
+                    <groupId>org.basepom.maven</groupId>
+                    <artifactId>duplicate-finder-maven-plugin</artifactId>
+                    <version>${duplicate.finder.plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>duplicate-check</id>
+                            <phase>verify</phase>
+                            <goals><goal>check</goal></goals>
+                            <configuration>
+                                <skip>false</skip>
+                                <printEqualFiles>true</printEqualFiles>
+                                <failBuildInCaseOfDifferentContentConflict>true</failBuildInCaseOfDifferentContentConflict>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <modules>
+        <!-- Agregá módulos con scripts/new-module.sh o a mano -->
+    </modules>
+
+</project>
