@@ -1,1 +1,0 @@
-CREATE SEQUENCE account_number_sq START WITH 4 INCREMENT BY 1;
